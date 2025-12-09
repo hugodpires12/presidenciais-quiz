@@ -12,7 +12,7 @@ exports.handler = async function(event, context) {
 
     // Acede à chave de forma segura (configurada no painel do Netlify)
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
 
     // --- AQUI ESTÁ A "ALMA" DA TUA GEM ---
     // Cola aqui o prompt que usaste para criar a tua Gem no site
@@ -56,3 +56,4 @@ exports.handler = async function(event, context) {
   }
 
 };
+
