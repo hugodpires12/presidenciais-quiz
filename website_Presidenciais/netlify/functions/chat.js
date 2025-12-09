@@ -1,63 +1,61 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-
 exports.handler = async function(event, context) {
-  // Apenas aceita pedidos POST
+  // Apenas aceita POST
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
 
   try {
-    const data = JSON.parse(event.body);
-    const userMessage = data.message;
+    const userBody = JSON.parse(event.body);
+    const userMessage = userBody.message;
+    const apiKey = process.env.GEMINI_API_KEY;
 
-    // Acede à chave de forma segura (configurada no painel do Netlify)
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // URL direta da API do Google (Modelo 1.5 Flash)
+    // Usamos fetch nativo, sem precisar de bibliotecas extra
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-    // --- AQUI ESTÁ A "ALMA" DA TUA GEM ---
-    // Cola aqui o prompt que usaste para criar a tua Gem no site
-    const systemInstruction = `
-      És um especialista imparcial em política portuguesa.
-      O teu objetivo é esclarecer dúvidas sobre os partidos e candidatos do quiz.
-      Sê breve, direto e educado.
-      Baseia-te apenas em factos reais e nos programas eleitorais.
-      Se te perguntarem "em quem devo votar", recusa responder e diz para fazerem o quiz.
-      Responde sempre em Português de Portugal.
-    `;
+    // Instrução de Sistema (A personalidade do teu bot)
+    const systemInstruction = "És um especialista imparcial em política portuguesa. Sê breve e baseia-te apenas em factos. Se perguntarem em quem votar, diz para fazerem o quiz.";
 
-    const chat = model.startChat({
-      history: [
-        {
-          role: "user",
-          parts: [{ text: systemInstruction }],
-        },
-        {
-          role: "model",
-          parts: [{ text: "Entendido. Estou pronto para responder como especialista imparcial." }],
-        },
-      ],
+    // Prepara o pedido
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: `${systemInstruction}\n\nPergunta do utilizador: ${userMessage}` }]
+          }
+        ]
+      })
     });
 
-    const result = await chat.sendMessage(userMessage);
-    const response = await result.response;
-    const text = response.text();
+    const data = await response.json();
+
+    // Verifica se o Google deu erro
+    if (!response.ok) {
+      console.error("Erro do Google:", JSON.stringify(data));
+      return {
+        statusCode: response.status,
+        body: JSON.stringify({ reply: `Erro técnico (${data.error?.message || 'Desconhecido'})` })
+      };
+    }
+
+    // Extrai a resposta
+    const botReply = data.candidates[0].content.parts[0].text;
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ reply: text }),
+      body: JSON.stringify({ reply: botReply }),
     };
 
   } catch (error) {
-    console.error("Erro:", error);
+    console.error("Erro grave:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Erro ao comunicar com o Gemini" }),
+      body: JSON.stringify({ reply: "Erro de conexão ao servidor." }),
     };
   }
-
 };
-
-
-
-
-
