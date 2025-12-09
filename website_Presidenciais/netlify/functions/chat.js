@@ -11,7 +11,7 @@ exports.handler = async function(event, context) {
 
     // URL direta da API do Google (Modelo 1.5 Flash)
     // Usamos fetch nativo, sem precisar de bibliotecas extra
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     // Instrução de Sistema (A personalidade do teu bot)
     const systemInstruction = "És um especialista imparcial em política portuguesa. Sê breve e baseia-te apenas em factos. Se perguntarem em quem votar, diz para fazerem o quiz.";
@@ -59,4 +59,5 @@ exports.handler = async function(event, context) {
     };
   }
 };
+
 
