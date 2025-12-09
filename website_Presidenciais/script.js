@@ -248,14 +248,28 @@ function init() {
 }
 
 function startQuiz() {
+    // Reset state
     state.scores = {};
     state.currentQuestionIndex = 0;
     state.selectedAnswerIndices = [];
     state.superPowerCount = 3;
     state.superPowerActive = false;
     
-    state.questions = [...originalQuestions].sort(() => Math.random() - 0.5);
+    // LÓGICA DE ALEATORIEDADE DUPLA:
+    // 1. Baralha a ordem das perguntas
+    // 2. Para cada pergunta, baralha a ordem das respostas
+    state.questions = [...originalQuestions]
+        .sort(() => Math.random() - 0.5) // Baralha perguntas
+        .map(question => {
+            // Cria uma cópia profunda da pergunta para não alterar a original
+            return {
+                ...question,
+                // Baralha as respostas desta pergunta específica
+                answers: [...question.answers].sort(() => Math.random() - 0.5)
+            };
+        });
     
+    // Render
     state.currentView = 'quiz';
     renderQuiz();
 }
@@ -666,4 +680,5 @@ function appendMessage(text, sender, isLoading = false) {
 }
 
 // Iniciar Aplicação
+
 init();
