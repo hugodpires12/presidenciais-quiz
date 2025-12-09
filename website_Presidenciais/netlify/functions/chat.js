@@ -1,63 +1,41 @@
 exports.handler = async function(event, context) {
-  // Apenas aceita POST
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
 
   try {
-    const userBody = JSON.parse(event.body);
-    const userMessage = userBody.message;
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : "";
+    
+    // Vamos pedir a lista de modelos disponíveis para a tua chave
+    const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
 
-    // URL direta da API do Google (Modelo 1.5 Flash)
-    // Usamos fetch nativo, sem precisar de bibliotecas extra
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-
-    // Instrução de Sistema (A personalidade do teu bot)
-    const systemInstruction = "És um especialista imparcial em política portuguesa. Sê breve e baseia-te apenas em factos. Se perguntarem em quem votar, diz para fazerem o quiz.";
-
-    // Prepara o pedido
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: `${systemInstruction}\n\nPergunta do utilizador: ${userMessage}` }]
-          }
-        ]
-      })
-    });
-
+    const response = await fetch(url, { method: 'GET' });
     const data = await response.json();
 
-    // Verifica se o Google deu erro
     if (!response.ok) {
-      console.error("Erro do Google:", JSON.stringify(data));
       return {
         statusCode: response.status,
-        body: JSON.stringify({ reply: `Erro técnico (${data.error?.message || 'Desconhecido'})` })
+        body: JSON.stringify({ reply: `ERRO DE CHAVE: ${data.error?.message}` })
       };
     }
 
-    // Extrai a resposta
-    const botReply = data.candidates[0].content.parts[0].text;
+    // Filtra apenas os modelos que servem para "generateContent" (Chat)
+    const availableModels = data.models
+      .filter(m => m.supportedGenerationMethods.includes("generateContent"))
+      .map(m => m.name.replace("models/", "")) // Limpa o nome
+      .join(", ");
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ reply: botReply }),
+      body: JSON.stringify({ 
+        reply: `DIAGNÓSTICO: A tua chave funciona! Os modelos que podes usar são: [ ${availableModels} ]. Diz-me quais aparecem aqui.` 
+      }),
     };
 
   } catch (error) {
-    console.error("Erro grave:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ reply: "Erro de conexão ao servidor." }),
+      body: JSON.stringify({ reply: "Erro grave de conexão." }),
     };
   }
 };
-
-
