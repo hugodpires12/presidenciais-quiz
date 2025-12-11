@@ -1,0 +1,68 @@
+/* Transições Base */
+.fade-enter {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+}
+
+.fade-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.slide-enter {
+    opacity: 0;
+    transform: translateX(50px);
+    transition: all 0.3s ease-in-out;
+}
+
+.slide-enter-active {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Utilitários de Animação */
+@keyframes pulse-ring {
+    0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(22, 163, 74, 0); }
+    100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+}
+
+.radio-selected {
+    animation: scale-in 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes scale-in {
+    from { transform: scale(0); }
+    to { transform: scale(1); }
+}
+
+/* Scrollbar Customizada */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f5f9; 
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1; 
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8; 
+}
+/* ... (teu css anterior) ... */
+
+/* Estilo do Tooltip (Balão de explicação) */
+.tooltip-content {
+    visibility: hidden;
+    opacity: 0;
+    transform: scale(0.95) translateX(10px);
+    transition: all 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.group:hover .tooltip-content {
+    visibility: visible;
+    opacity: 1;
+    transform: scale(1) translateX(0);
+}
