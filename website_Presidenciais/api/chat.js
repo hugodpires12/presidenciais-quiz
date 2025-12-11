@@ -1,56 +1,58 @@
 export default async function handler(req, res) {
-  // 1. Validar Método (Apenas POST)
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
-  }
-
-  try {
-    // Na Vercel, o 'req.body' já vem pronto, não precisas de JSON.parse()
-    const { message: userMessage } = req.body;
-    
-    // Ler a chave
-    const apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : "";
-
-    if (!apiKey) {
-      return res.status(500).json({ reply: "Erro: API Key não configurada na Vercel." });
+    // Permitir apenas pedidos POST
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    // URL do Google (Modelo 1.5 Flash ou Pro, dependendo do que a tua chave suporta)
-    // Vamos usar o 1.5-flash como base
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    try {
+        // 1. Obter a mensagem do utilizador
+        // Se req.body for string (às vezes acontece), fazemos parse. Se for objeto, usamos direto.
+        const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+        const userMessage = body.message;
 
-    const systemInstruction = "És um especialista imparcial em política portuguesa. Sê breve e baseia-te apenas em factos. Se perguntarem em quem votar, diz para fazerem o quiz.";
+        // 2. Obter a API Key das variáveis de ambiente
+        const apiKey = process.env.GEMINI_API_KEY;
 
-    // Chamada ao Google
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: `${systemInstruction}\n\nPergunta do utilizador: ${userMessage}` }]
-          }
-        ]
-      })
-    });
+        if (!apiKey) {
+            console.error("Erro: API Key em falta");
+            return res.status(500).json({ reply: "Erro de configuração no servidor (API Key)." });
+        }
 
-    const data = await response.json();
+        // 3. Preparar a chamada ao Google (Modelo Flash)
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-    if (!response.ok) {
-      console.error("Erro Google:", data);
-      return res.status(response.status).json({ 
-        reply: `Erro técnico: ${data.error?.message || 'Desconhecido'}` 
-      });
+        const systemInstruction = "És um especialista imparcial em política portuguesa. Sê breve e baseia-te apenas em factos. Se perguntarem em quem votar, diz para fazerem o quiz.";
+
+        // 4. Fazer o pedido (Fetch Nativo)
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [
+                    {
+                        role: "user",
+                        parts: [{ text: `${systemInstruction}\n\nPergunta do utilizador: ${userMessage}` }]
+                    }
+                ]
+            })
+        });
+
+        const data = await response.json();
+
+        // 5. Verificar erros do Google
+        if (!response.ok) {
+            console.error("Erro Google:", JSON.stringify(data));
+            return res.status(response.status).json({ 
+                reply: "Desculpa, estou com dificuldades técnicas de momento." 
+            });
+        }
+
+        // 6. Extrair e enviar a resposta
+        const botReply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Não consegui gerar uma resposta.";
+        return res.status(200).json({ reply: botReply });
+
+    } catch (error) {
+        console.error("Erro Interno:", error);
+        return res.status(500).json({ reply: "Erro interno do servidor." });
     }
-
-    const botReply = data.candidates[0].content.parts[0].text;
-
-    // Resposta de Sucesso para o teu site
-    return res.status(200).json({ reply: botReply });
-
-  } catch (error) {
-    console.error("Erro Vercel:", error);
-    return res.status(500).json({ reply: "Erro interno do servidor." });
-  }
 }
