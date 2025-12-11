@@ -248,20 +248,16 @@ function init() {
 }
 
 function startQuiz() {
-    // Reset state
     state.scores = {};
     state.currentQuestionIndex = 0;
     state.selectedAnswerIndices = [];
     state.superPowerCount = 3;
     state.superPowerActive = false;
     
-    // LÓGICA DE ALEATORIEDADE DUPLA:
-    // 1. Baralha a ordem das perguntas
-    // 2. Para cada pergunta, baralha a ordem das respostas
+    // ALEATORIEDADE DUPLA (Perguntas E Respostas)
     state.questions = [...originalQuestions]
         .sort(() => Math.random() - 0.5) // Baralha perguntas
         .map(question => {
-            // Cria uma cópia profunda da pergunta para não alterar a original
             return {
                 ...question,
                 // Baralha as respostas desta pergunta específica
@@ -269,7 +265,6 @@ function startQuiz() {
             };
         });
     
-    // Render
     state.currentView = 'quiz';
     renderQuiz();
 }
@@ -526,6 +521,7 @@ function renderResults() {
 
     const winner = sortedCandidates[0];
 
+    // GA4 Tracking
     if (typeof gtag === 'function') {
         gtag('event', 'quiz_completed', {
             'event_category': 'Engagement',
@@ -534,6 +530,7 @@ function renderResults() {
         });
     }
 
+    // Share Handler
     window.handleShare = async () => {
         const shareText = `O meu candidato ideal é ${winner.name} com ${winner.percentage}% de afinidade!`;
         const btn = document.getElementById('shareBtn');
@@ -637,10 +634,14 @@ async function sendMessage() {
     const loadingId = appendMessage('...', 'bot', true);
 
     try {
-        // 3. Chamar a nossa Netlify Function
-        const response = await fetch('/.netlify/functions/chat', {
+        // MUDA AQUI: Se estiveres no Netlify usa '/.netlify/functions/chat'
+        // Se estiveres na Vercel usa '/api/chat'
+        const endpoint = '/api/chat'; 
+
+        const response = await fetch(endpoint, {
             method: 'POST',
-            body: JSON.stringify({ message: text })
+            body: JSON.stringify({ message: text }),
+            headers: { 'Content-Type': 'application/json' }
         });
 
         const data = await response.json();
@@ -680,5 +681,4 @@ function appendMessage(text, sender, isLoading = false) {
 }
 
 // Iniciar Aplicação
-
 init();
