@@ -626,33 +626,55 @@ async function sendMessage() {
     const messagesDiv = document.getElementById('chat-messages');
     const text = input.value.trim();
     
+    // Se não houver texto, não faz nada
     if (!text) return;
 
-    // 1. Mostrar mensagem do utilizador
+    // 1. Mostrar mensagem do utilizador no chat
     appendMessage(text, 'user');
+    
+    // Limpar o input e bloquear para não enviar duas vezes
     input.value = '';
     input.disabled = true;
 
-    // 2. Mostrar indicador de "A escrever..."
+    // 2. Mostrar indicador de "A escrever..." (Loading)
     const loadingId = appendMessage('...', 'bot', true);
 
     try {
-        // 3. Chamar a nossa Netlify Function
-        const response = await fetch('/.netlify/functions/chat', {
+        // AQUI ESTÁ A MUDANÇA: Aponta para a rota do teu servidor Node.js
+        // Como o front-end e back-end estão no mesmo sítio (server.js), 
+        // basta usar o caminho relativo.
+        const endpoint = '/api/chat'; 
+
+        const response = await fetch(endpoint, {
             method: 'POST',
-            body: JSON.stringify({ message: text })
+            body: JSON.stringify({ message: text }),
+            headers: { 'Content-Type': 'application/json' }
         });
 
         const data = await response.json();
         
-        // 4. Remover loading e mostrar resposta
-        document.getElementById(loadingId).remove();
-        appendMessage(data.reply || "Desculpa, ocorreu um erro.", 'bot');
+        // 3. Remover a animação de loading
+        const loadingElement = document.getElementById(loadingId);
+        if (loadingElement) loadingElement.remove();
+
+        // 4. Verificar se houve erro na resposta
+        if (!response.ok) {
+            console.error('Erro na resposta:', data);
+            appendMessage("Ocorreu um erro técnico. Tenta novamente.", 'bot');
+        } else {
+            // 5. Mostrar a resposta do Bot
+            appendMessage(data.reply || "Sem resposta.", 'bot');
+        }
 
     } catch (error) {
-        document.getElementById(loadingId).remove();
-        appendMessage("Erro de conexão. Tenta novamente.", 'bot');
+        console.error('Erro de conexão:', error);
+        // Remover loading se ainda existir
+        const loadingElement = document.getElementById(loadingId);
+        if (loadingElement) loadingElement.remove();
+        
+        appendMessage("Erro de conexão ao servidor.", 'bot');
     } finally {
+        // 6. Voltar a ativar o input para nova pergunta
         input.disabled = false;
         input.focus();
     }
@@ -682,3 +704,4 @@ function appendMessage(text, sender, isLoading = false) {
 // Iniciar Aplicação
 
 init();
+
